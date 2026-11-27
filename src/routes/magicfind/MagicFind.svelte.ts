@@ -48,25 +48,10 @@ export class MagicFind {
 	}
 
 	get total(): number {
-		return this.categories.reduce((total, category) => {
-			return (
-				total +
-				category.items.reduce((categoryTotal, item) => {
-					if (item instanceof MagicFindItemNumber) {
-						return categoryTotal + item.value * (item.multiplier ?? 1);
-					} else if (item instanceof MagicFindItemBool && item.checked) {
-						return categoryTotal + item.value;
-					} else if (item instanceof MagicFindItemRadio && item.checked) {
-						return (
-							categoryTotal + (typeof item.value === 'string' ? parseInt(item.value) : item.value)
-						);
-					} else if (item instanceof MagicFindItemSelect) {
-						return categoryTotal + item.selected;
-					}
-					return categoryTotal;
-				}, 0)
-			);
-		}, 0);
+		return this.categories.reduce(
+			(total, category) => total + category.items.reduce((sum, item) => sum + item.total, 0),
+			0
+		);
 	}
 }
 
@@ -96,10 +81,18 @@ export class MagicFindItem {
 	type = 'bool';
 	icons: string[] = [];
 	names: [{ name: string; link: string }] = [{ name: '', link: '' }];
+
+	get total(): number {
+		return 0;
+	}
 }
 
 export class MagicFindItemNumber extends MagicFindItem {
 	multiplier = 1;
+
+	override get total(): number {
+		return this.value * this.multiplier;
+	}
 	setValue(newValue: number): void {
 		this.value = newValue;
 	}
@@ -108,6 +101,10 @@ export class MagicFindItemNumber extends MagicFindItem {
 export class MagicFindItemBool extends MagicFindItem {
 	checked = $state(false);
 
+	override get total(): number {
+		return this.checked ? this.value : 0;
+	}
+
 	setChecked(newChecked: boolean): void {
 		this.checked = newChecked;
 	}
@@ -115,6 +112,11 @@ export class MagicFindItemBool extends MagicFindItem {
 
 export class MagicFindItemRadio extends MagicFindItem {
 	checked = $state(false);
+
+	override get total(): number {
+		if (!this.checked) return 0;
+		return typeof this.value === 'string' ? Number.parseInt(this.value, 10) : this.value;
+	}
 
 	setChecked(newChecked: boolean, category: MagicFindCategory): void {
 		category.setCheckedRadio();
@@ -125,6 +127,10 @@ export class MagicFindItemRadio extends MagicFindItem {
 export class MagicFindItemSelect extends MagicFindItem {
 	options: { value: number; description: string }[] = [{ value: 0, description: '' }];
 	selected = $state(0);
+
+	override get total(): number {
+		return this.selected;
+	}
 
 	setSelected(newSelected: number): void {
 		this.selected = newSelected;

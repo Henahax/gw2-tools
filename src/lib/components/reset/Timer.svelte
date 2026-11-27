@@ -29,6 +29,7 @@
 		return duration[0] > 0 ? 3 : 2;
 	});
 	let formattedTime = $derived(formatTime(difference, numbersShownDynamic));
+	let timeUnits = $derived(getTimeUnitsToShow(numbersShownDynamic, formattedTime));
 
 	$effect(() => {
 		if (triggerReload && difference < 0 && !clock.reloading) {
@@ -96,11 +97,11 @@
 		<div class="timer flex items-center gap-1.5">
 			<div class="flex items-center gap-0.5">
 				<div class="flex items-center">
-					{#each getTimeUnitsToShow(numbersShownDynamic, formattedTime) as unit, index (index)}
+					{#each timeUnits as unit, index (index)}
 						{#each unit.value.split('') as digit, i (i)}
 							<div>{digit}</div>
 						{/each}
-						{#if index < getTimeUnitsToShow(numbersShownDynamic, formattedTime).length - 1}
+						{#if index < timeUnits.length - 1}
 							<div>:</div>
 						{/if}
 					{/each}
