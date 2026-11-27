@@ -46,61 +46,47 @@ export class Reset {
 	intervals = $state<ResetInterval[]>([]);
 
 	constructor(data?: ResetIntervalData[], cookies: Cookie[] = []) {
-		if (data) {
-			const cookieValues: Record<string, string> = Object.fromEntries(
-				cookies.map(({ namespace, subname, value }) => [`${namespace}.${subname}`, value])
-			);
+		if (!data) return;
 
-			this.intervals = data.map((interval) => {
-				const resetInterval = new ResetInterval({
-					id: interval.id,
-					interval: parseInterval(interval.interval),
-					timer: interval.timer,
-					tasks: interval.tasks,
-					reset: interval.reset,
-					icon: interval.icon
-				});
-
-				resetInterval.categories = interval.categories.map((category: ResetCategoryData) => {
-					const resetCategory = new ResetCategory(category.id, category.name); // Create tasks with clean state to avoid any state sharing
-					resetCategory.tasks = category.tasks.map((task: ResetTaskData) => {
-						const resetTask = new ResetTask({
-							id: task.id,
-							name: task.name,
-							icon: task.icon,
-							link: task.link,
-							description: task.description,
-							location: task.location,
-							chatcode: task.chatcode,
-							display: task.display ?? false,
-							timer: task.timer ? createResetTimer(task.timer) : undefined
-						});
-						return resetTask;
-					});
-					return resetCategory;
-				});
-				return resetInterval;
-			});
-
-			this.intervals.forEach((interval) => {
-				interval.categories.forEach((category) => {
-					category.tasks.forEach((task) => {
-						const displayValue = cookieValues[`${task.id}.display`];
-						if (displayValue !== undefined) {
-							task.display = displayValue === 'true';
-						}
-
-						const checkedValue = cookieValues[`${task.id}.${interval.interval}`];
-						if (checkedValue !== undefined) {
-							task.checked = checkedValue === 'true';
-						}
-					});
-
-					category.syncOpenState();
-				});
-			});
-		}
+		const cookieValues = Object.fromEntries(
+			cookies.map(({ namespace, subname, value }) => [`${namespace}.${subname}`, value])
+		);
+		this.intervals = data.map((interval) => createResetInterval(interval, cookieValues));
 	}
+}
+
+function createResetInterval(
+	data: ResetIntervalData,
+	cookieValues: Record<string, string>
+): ResetInterval {
+	const interval = new ResetInterval({
+		id: data.id,
+		interval: parseInterval(data.interval),
+		timer: data.timer,
+		tasks: data.tasks,
+		reset: data.reset,
+		icon: data.icon
+	});
+
+	interval.categories = data.categories.map((categoryData) => {
+		const category = new ResetCategory(categoryData.id, categoryData.name);
+		category.tasks = categoryData.tasks.map((taskData) => {
+			const task = new ResetTask({
+				...taskData,
+				display: taskData.display ?? false,
+				timer: taskData.timer ? createResetTimer(taskData.timer) : undefined
+			});
+			const displayValue = cookieValues[`${task.id}.display`];
+			if (displayValue !== undefined) task.display = displayValue === 'true';
+			const checkedValue = cookieValues[`${task.id}.${interval.interval}`];
+			if (checkedValue !== undefined) task.checked = checkedValue === 'true';
+			return task;
+		});
+		category.syncOpenState();
+		return category;
+	});
+
+	return interval;
 }
 
 export class ResetInterval {

@@ -8,17 +8,34 @@
 	const SOON_TIME_MS = 5 * 60 * 1000;
 	const TONE_DURATION_SECONDS = 0.16;
 	const TONE_GAP_SECONDS = 0.12;
+	const ALERT_STORAGE_KEY = 'gw2-tools-reset-alerts';
 
 	const clock = getResetClock();
-	let { timer }: { timer: ResetTimer } = $props();
+	let { timer, alertKey }: { timer: ResetTimer; alertKey: string } = $props();
 	let nextEventTime = $state(0);
 	let duration = $state<[number, number]>([0, 0]);
 	let add = $state('');
 	let alertEnabled = $state(false);
 	let numbersShown = $derived(duration[0] > 0 ? 3 : 2);
 	let audioContext: AudioContext | undefined;
+	let alertSettingsLoaded = $state(false);
 	let warnedEventTime: number | undefined;
 	let startedEventTime: number | undefined;
+
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		alertEnabled = readSavedAlerts().includes(alertKey);
+		alertSettingsLoaded = true;
+	});
+
+	$effect(() => {
+		if (!alertSettingsLoaded || typeof window === 'undefined') return;
+		writeSavedAlerts(
+			alertEnabled
+				? [...new Set([...readSavedAlerts(), alertKey])]
+				: readSavedAlerts().filter((key) => key !== alertKey)
+		);
+	});
 
 	$effect(() => {
 		const now = clock.now;
@@ -41,9 +58,11 @@
 		const eventEnd = nextEventTime + getDurationMilliseconds();
 		if (remaining <= 0 && now < eventEnd && startedEventTime !== nextEventTime) {
 			startedEventTime = nextEventTime;
-			playAlert(2);
-			showNotification('start');
-			alertEnabled = false;
+			if (alertSettingsLoaded) {
+				playAlert(2);
+				showNotification('start');
+				alertEnabled = false;
+			}
 		}
 	});
 
@@ -66,6 +85,23 @@
 	function getDurationMilliseconds() {
 		// Convert the configured event duration to milliseconds.
 		return duration[0] * 60 * 60 * 1000 + duration[1] * 60 * 1000;
+	}
+
+	function readSavedAlerts(): string[] {
+		try {
+			const value: unknown = JSON.parse(window.localStorage.getItem(ALERT_STORAGE_KEY) ?? '[]');
+			return Array.isArray(value) ? value.filter((key): key is string => typeof key === 'string') : [];
+		} catch {
+			return [];
+		}
+	}
+
+	function writeSavedAlerts(alerts: string[]) {
+		try {
+			window.localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alerts));
+		} catch {
+			// Keep the alert usable if browser storage is unavailable.
+		}
 	}
 
 	function toggleAlert(event: MouseEvent) {

@@ -16,7 +16,7 @@
 	let reset = $derived(new Reset(resetData satisfies ResetIntervalData[], data.resetCookies));
 	let clock = $state({ now: Date.now(), reloading: false });
 	setResetClock(clock);
-	let overlayOpen = $state(false);
+	let settingsDialog = $state<HTMLDialogElement | null>(null);
 	let filter = $state('');
 
 	// Keep the shared clock in sync for all timers.
@@ -65,9 +65,16 @@
 		};
 	});
 
-	function toggleOverlay() {
-		// Toggle the task settings panel.
-		overlayOpen = !overlayOpen;
+	function openSettings() {
+		settingsDialog?.showModal();
+	}
+
+	function closeSettings() {
+		settingsDialog?.close();
+	}
+
+	function closeSettingsOnBackdrop(event: MouseEvent) {
+		if (event.target === event.currentTarget) closeSettings();
 	}
 </script>
 
@@ -98,7 +105,7 @@
 				/>
 			</div>
 			<div class="flex gap-2">
-				<button class="btn btn-outline" onclick={toggleOverlay}>
+				<button class="btn btn-outline" onclick={openSettings}>
 					<i class="fa-solid fa-gear"></i>
 					<span class="max-sm:hidden">Settings</span>
 				</button>
@@ -115,32 +122,31 @@
 	</div>
 </div>
 
-<label
-	class="overlay absolute top-0 right-0 bottom-0 flex h-dvh w-dvw grow justify-end backdrop-blur-xs {overlayOpen
-		? ''
-		: 'hidden'}"
-	for="closeResetMenu"
-></label>
-<div
-	class="menu absolute top-0 right-0 bottom-0 flex h-dvh flex-col border-l shadow-lg"
-	class:open={overlayOpen}
+<dialog
+	bind:this={settingsDialog}
+	class="menu fixed inset-y-0 right-0 m-0 h-dvh max-h-dvh w-full max-w-md border-l p-0 shadow-lg"
+	aria-labelledby="reset-settings-title"
+	onclick={closeSettingsOnBackdrop}
 >
-	{#if overlayOpen}
+	<div class="flex h-full flex-col">
 		<div class="flex flex-col gap-2 p-4">
 			<div class="flex w-full items-center justify-between gap-4">
-				<div class="text-xl">Displayed Tasks:</div>
+				<h2 id="reset-settings-title" class="text-xl">Displayed tasks</h2>
 				<button
-					id="closeResetMenu"
+					type="button"
 					class="btn btn-ghost btn-square"
-					aria-label="close"
-					onclick={toggleOverlay}
+					aria-label="Close settings"
+					onclick={closeSettings}
 				>
-					<i class="fa-solid fa-xmark"></i>
+					<i class="fa-solid fa-xmark" aria-hidden="true"></i>
 				</button>
 			</div>
-			<input class="w-full" type="search" placeholder="Search" bind:value={filter} />
+			<label class="grid gap-1 text-sm">
+				<span>Search tasks</span>
+				<input class="w-full" type="search" bind:value={filter} />
+			</label>
 		</div>
-		<div class="overflow-y-auto">
+		<div class="min-h-0 flex-1 overflow-y-auto">
 			<div class="flex flex-col gap-4 p-4">
 				{#each reset.intervals.filter( (interval: ResetInterval) => interval.categories.some( (category) => category.tasks.some((task) => task.name
 											.toLowerCase()
@@ -180,7 +186,7 @@
 												<img
 													class="size-6 rounded"
 													src={task.icon}
-													alt={task.name}
+									alt=""
 													loading="lazy"
 													decoding="async"
 												/>
@@ -191,10 +197,10 @@
 													{:else if task.location}
 														<div class="flex items-center gap-1.5 text-xs text-neutral-400">
 															<i class="fa-solid fa-location-dot"></i>
-															{task.location}
-														</div>
-													{/if}
-												</div>
+										{task.location}
+									</div>
+								{/if}
+							</div>
 											</label>
 										{/each}
 									</div>
@@ -205,30 +211,28 @@
 				{/each}
 			</div>
 		</div>
-	{/if}
-</div>
+	</div>
+</dialog>
 
 <style>
 	label {
 		cursor: pointer;
 	}
 
-	.overlay {
-		position: fixed;
-		z-index: 10;
-	}
-
 	.menu {
-		position: fixed;
-		z-index: 50;
-		height: 100vh;
-		transition: transform 0.5s ease-in-out;
-		transform: translateX(100%);
 		border-color: var(--card-border-color);
 		background-color: var(--background-muted);
 	}
 
-	.menu.open {
-		transform: translateX(0);
+	.menu::backdrop {
+		background: rgb(0 0 0 / 55%);
+		backdrop-filter: blur(2px);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.menu,
+		.menu::backdrop {
+			transition: none;
+		}
 	}
 </style>

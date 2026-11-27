@@ -49,6 +49,7 @@
 						{#if item instanceof MagicFindItemSelect}
 							<select
 								id={item.id}
+								aria-label={item.names.map((name) => name.name).join(', ') || item.description}
 								class="col-span-2 text-xs"
 								onchange={(e) => {
 									const target = e.target as HTMLSelectElement;
@@ -65,6 +66,7 @@
 							<input
 								id={item.id}
 								type="number"
+								aria-label={item.names.map((name) => name.name).join(', ') || item.description}
 								class="col-span-2 text-right text-xs"
 								value={item.value}
 								min="0"
@@ -79,6 +81,7 @@
 							<input
 								id={item.id}
 								type="checkbox"
+								aria-label={item.names.map((name) => name.name).join(', ') || item.description}
 								checked={item.checked}
 								onchange={(e) => {
 									const target = e.target as HTMLInputElement;
@@ -90,6 +93,7 @@
 							<input
 								id={item.id}
 								type="radio"
+								aria-label={item.names.map((name) => name.name).join(', ') || item.description}
 								name={category.id}
 								checked={item.checked}
 								onchange={(e) => {
@@ -101,7 +105,7 @@
 						{/if}
 						<div class="flex flex-wrap">
 							{#each item.icons as icon}
-								<img class="size-8" src={icon} alt="icon" />
+								<img class="size-8" src={icon} alt="" />
 							{/each}
 						</div>
 						<div class="flex flex-col">

@@ -49,7 +49,7 @@
 	<div class="flex items-center gap-0.5 text-xs">
 		{#if !task.checked}
 			{#if task.timer}
-				<EventTimer timer={task.timer} />
+				<EventTimer timer={task.timer} alertKey={task.id} />
 			{/if}
 		{/if}
 
